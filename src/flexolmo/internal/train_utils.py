@@ -1,6 +1,7 @@
 import json
 import logging
 from fnmatch import fnmatch
+from peft import LoraConfig, get_peft_model
 from typing import Optional, cast
 
 import torch
@@ -70,6 +71,17 @@ def _train(
 
     # Build components.
     model = config.model.build(init_device="meta")
+    if config.lora_modules is not None:
+        lora_config = LoraConfig(
+            r=config.lora_r,
+            lora_alpha=config.lora_alpha,
+            target_modules=config.lora_modules,
+            lora_dropout=config.lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model=train_module.model, peft_config=lora_config)
+        model.print_trainable_parameters()
     train_module = config.train_module.build(model, device=device)
 
     if config.model.freeze_params:
