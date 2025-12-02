@@ -48,11 +48,11 @@ def parse_args() -> argparse.Namespace:
         help="Rank for the low-rank adapters to be applied to each linear layer",
     )
     parser.add_argument(
-        "-a",
-        "--alpha",
-        nargs="+",
-        default=[2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768],
-        help="Alpha (scaling factor) for the low-rank adapters to be applied to each linear layer",
+        "-p",
+        "--processes",
+        type=int,
+        default=1,
+        help="Number of processes for SVD computation",
     )
     parser.add_argument(
         "-l",
@@ -77,6 +77,7 @@ if __name__ == "__main__":
 
     expert_path = args.model
     target_path = args.target
+    torch.set_num_threads(args.processes)
 
     # load the MoE model config
     model_config = build_model_config(num_experts=2)
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     # copy over the keys in the dense state_dict to final_state_dict
     # TODO loop over rank list
     key2usvh = {}
-    for rank, alpha in zip(args.rank, args.alpha):
+    for rank in args.rank:
         for key in list(moe_state_dict.keys()):
             assert expert_state_dict[key].shape == moe_state_dict[key].shape, f"Shape mismatch for key {key}: {expert_state_dict[key].shape} vs {moe_state_dict[key].shape}"
             if "expert" in key:
@@ -128,13 +129,13 @@ if __name__ == "__main__":
                     lora_s = s[:rank]
                     lora_vh = vh[:rank, :]
                     # reconstruct the low-rank expert adaptation                
-                    lora_expert = (lora_u * lora_s) @ lora_vh * (alpha / rank)
+                    lora_expert = (lora_u * lora_s) @ lora_vh
                     ft_expert = lora_expert + base_expert
                 moe_state_dict[key][dim:, :] = ft_expert
             else:
                 moe_state_dict[key] = expert_state_dict[key]
         # save the final_state_dict for the MoE in a format that the olmo_core trainer likes
-        save_path = f"{target_path}-r{rank}-a{alpha}"
+        save_path = f"{target_path}-r{rank}"
         log.info(f"Saving model to {save_path}")
         save_state_dict(save_path, {"model": moe_state_dict}, save_overwrite=True)
 
