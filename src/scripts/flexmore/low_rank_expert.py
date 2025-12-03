@@ -1,6 +1,6 @@
 import logging
 import torch
-from transformers import AutoConfig, AutoModel
+from transformers import AutoConfig, AutoModelForCausalLM
 import typer
 
 from olmo_core.utils import prepare_cli_environment
@@ -35,13 +35,12 @@ def main(
     log.info(model_config)
 
     log.info("Initializing empty model")
-    model = AutoModel.from_config(model_config)
+    model = AutoModelForCausalLM.from_config(model_config)
     model_state_dict = model.state_dict()
 
     log.info(f"Loading model from {model_path}")
-    expert = AutoModel.from_pretrained(model_path)
+    expert = AutoModelForCausalLM.from_pretrained(model_path)
     expert_state_dict = expert.state_dict()
-    print(expert_state_dict.keys())
 
     key2usvh = {}
     for r in rank:
