@@ -31,7 +31,7 @@ elif [[ $TASK_NAME == "gen5" ]] ; then
 elif [[ $TASK_NAME == "mmlu" ]] ; then
 	TASKS=(mmlu:mc::olmes)
 elif [[ $TASK_NAME == "mmlu_pro" ]] ; then
-	TASKS=(mmlu_pro_mc::none)
+	TASKS=(mmlu_pro:mc::none)
 elif [[ $TASK_NAME == "agi_eval" ]] ; then
 	TASKS=(agi_eval_english:1shot::olmes)
 elif [[ $TASK_NAME == "bbh" ]] ; then

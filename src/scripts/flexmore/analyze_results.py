@@ -35,7 +35,9 @@ def parse_results_file(filepath):
 
             # Extract rank from model name
             rank_match = re.search(r'-r(\d+)', model_name)
-            rank = int(rank_match.group(1)) if rank_match else None
+            rank = int(rank_match.group(1)) if rank_match else (131072 if 'best2' in model_name else (65536 if 'best' in model_name else 32768))
+            if rank is None:
+                print(f"Warning: Could not determine rank for model '{model_name}'")
 
             # Extract base model type
             if 'Flex-code' in model_name:
@@ -51,7 +53,14 @@ def parse_results_file(filepath):
             elif 'Flex-math' in model_name:
                 model_type = 'Flex-math'
             elif 'FlexOlmo' in model_name:
-                model_type = 'FlexOlmo'
+                if '-a2' in model_name:
+                    model_type = 'FlexOlmo-a2'
+                elif '-a4' in model_name:
+                    model_type = 'FlexOlmo-a4'
+                elif '-a7' in model_name:
+                    model_type = 'FlexOlmo-a7'
+                else:
+                    model_type = 'FlexOlmo-unknown'
             else:
                 model_type = 'Unknown'
 
@@ -105,6 +114,7 @@ def plot_rank_vs_performance(df, output_dir):
         ax.set_xscale('log', base=2)
         ax.set_xlabel('Rank (log scale)', fontsize=12)
         ax.set_ylabel('Score', fontsize=12)
+        ax.set_ylim(0.55, 0.775)
         ax.set_title(f'{model_type}: Rank vs Performance', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         ax.legend()
@@ -188,9 +198,18 @@ def find_optimal_ranks(df):
         best_idx = subset['mean_score'].idxmax()
         best_row = subset.loc[best_idx]
 
+        best_rank = best_row['rank']
+        if best_rank == 131072:
+            best_rank_label = 'best2'
+        elif best_rank == 65536:
+            best_rank_label = 'best'
+        elif best_rank == 32768:
+            best_rank_label = 'full'
+        else:
+            best_rank_label = str(int(best_rank))
         results.append({
             'model_type': model_type,
-            'optimal_rank': best_row['rank'],
+            'optimal_rank': best_rank,
             'mean_score': best_row['mean_score'],
             'std_score': best_row['std_score']
         })
