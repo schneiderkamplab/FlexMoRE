@@ -34,6 +34,7 @@ from olmo_core.train.callbacks import (
     CheckpointerCallback,
     CometCallback,
     ConfigSaverCallback,
+    ConsoleLoggerCallback,
     GarbageCollectorCallback,
     GPUMemoryMonitorCallback,
     LMEvaluatorCallbackConfig,
@@ -73,6 +74,7 @@ class ExperimentConfig(Config):
     train_module: TransformerTrainModuleConfig
     trainer: TrainerConfig
     init_seed: int = 12536
+    tracking_backend: Optional[str] = None
 
 
 def get_root_dir(cluster: str = "") -> str:
@@ -99,6 +101,7 @@ def build_common_components(
     sequence_length: int = 4096,
     include_default_evals: bool = True,
     freeze_embeddings: bool = False,
+    tracking_backend: str = None,
 ) -> CommonComponents:
 
     tokenizer_config = TokenizerConfig.dolma2()
@@ -172,14 +175,19 @@ def build_common_components(
             enabled=False,
             cancel_check_interval=10,
         ),
-        "wandb": WandBCallback(
+        "console": ConsoleLoggerCallback(
+            log_interval=10,
+            metrics=["*"],
+        ),
+    }
+    if tracking_backend == "wandb":
+        callbacks["wandb"] = WandBCallback(
             name=run_name,
             entity="ai2-llm",
             project="OLMo-modular",
             enabled=True,
             cancel_check_interval=10,
-        ),
-    }
+        )
     beaker_user = get_beaker_username()
     if beaker_user is not None:
         callbacks["beaker"] = BeakerCallback()
@@ -252,6 +260,7 @@ def build_experiment_config(
     sequence_length: int,
     global_batch_size: int,
     include_default_evals: bool = True,
+    tracking_backend: str = None,
     freeze_embeddings: bool = False,
     model_config_builder: Callable[[CommonComponents], TransformerConfig],
     train_module_config_builder: Callable[[CommonComponents], TransformerTrainModuleConfig],
@@ -269,6 +278,7 @@ def build_experiment_config(
         sequence_length=sequence_length,
         global_batch_size=global_batch_size,
         include_default_evals=include_default_evals,
+        tracking_backend=tracking_backend,
         freeze_embeddings=freeze_embeddings,
     )
 
@@ -315,6 +325,7 @@ def build_experiment_config(
         data_loader=data_loader,
         train_module=train_module,
         trainer=trainer,
+        tracking_backend=tracking_backend,
     )
 
     if finalize_config is not None:

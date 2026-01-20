@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import os
 
 import numpy as np
 import torch
@@ -205,6 +206,7 @@ if __name__ == "__main__":
 
     # save the final_state_dict for the MoE in a format that the olmo_core trainer likes
     save_state_dict(target_path, {"model": moe_state_dict})
+    os.makedirs(target_path + "-unsharded", exist_ok=True)
     torch.save(moe_state_dict, target_path + "-unsharded/model.pt")
 
     log.info(f"Model saved to {target_path}")

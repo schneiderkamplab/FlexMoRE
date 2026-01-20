@@ -71,7 +71,7 @@ def _train(
 
     # Build components.
     model = config.model.build(init_device="meta")
-    if config.lora_modules is not None:
+    if hasattr(config, "lora_modules") and config.lora_modules is not None:
         lora_config = LoraConfig(
             r=config.lora_r,
             lora_alpha=config.lora_alpha,
@@ -101,7 +101,8 @@ def _train(
     # Record the config to W&B/Comet and each checkpoint dir.
     config_dict = config.as_config_dict()
     cast(CometCallback, trainer.callbacks["comet"]).config = config_dict
-    cast(WandBCallback, trainer.callbacks["wandb"]).config = config_dict
+    if config.tracking_backend == "wandb":
+        cast(WandBCallback, trainer.callbacks["wandb"]).config = config_dict
     cast(ConfigSaverCallback, trainer.callbacks["config_saver"]).config = config_dict
 
     if checkpoint is not None:  # anneal or finetune
