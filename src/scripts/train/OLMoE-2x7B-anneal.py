@@ -4,6 +4,12 @@ Train an Nx7B OLMo2 model. Run this script without any arguments to see usage in
 
 import logging
 import sys
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True,  # <- THIS is the key
+)
 
 from olmo_core.config import DType
 from olmo_core.data import NumpyDatasetConfig
@@ -44,7 +50,7 @@ log = logging.getLogger(__name__)
 
 
 def build_model_config(common: CommonComponents) -> TransformerConfig:
-    return TransformerConfig.olmoe_nx7b_with_expert_bias(  # type: ignore
+    return TransformerConfig.olmoe_nx7b( #_with_expert_bias(  # type: ignore
         vocab_size=common.tokenizer.padded_vocab_size(),
         num_experts=2,
         lb_loss_weight=0,
@@ -79,7 +85,7 @@ def build_train_module_config(common: CommonComponents) -> FreezeTransformerTrai
             param_dtype=DType.bfloat16,
             reduce_dtype=DType.float32,
             wrapping_strategy=TransformerDataParallelWrappingStrategy.fine_grained,
-            num_replicas=8,  # TODO: set this to number of GPUs / num_experts, 32 when using 8 nodes
+            num_replicas=2,  # TODO: set this to number of GPUs / num_experts, 32 when using 8 nodes
         ),
         # NOTE: expert parallelism requires either HSDP or tensor parallelism.
         ep_config=TransformerExpertParallelConfig(degree=2),
@@ -133,7 +139,7 @@ if __name__ == "__main__":
             root_dir=get_root_dir(),
             sequence_length=SEQUENCE_LENGTH,
             global_batch_size=128 * SEQUENCE_LENGTH,
-            include_default_evals=True,
+            include_default_evals=False,
             freeze_embeddings=False,
             model_config_builder=build_model_config,
             dataset_config_builder=build_dataset_config,
