@@ -56,7 +56,7 @@ def load_embedding_model(model_name: str):
 
 def get_embeddings(domain: str, data_path: str, model_name: str, output_path: str):
     model = load_embedding_model(model_name)
-    docs = load_data(domain, data_path, p=0.0001, debug=True)
+    docs = load_data(domain, data_path, p=0.0002, debug=True)
     n_tokens = [len(doc.split()) for doc in docs]
     print("number of docs: ", len(docs))
     print("number of tokens: ", np.mean(n_tokens))
@@ -68,7 +68,7 @@ def get_embeddings(domain: str, data_path: str, model_name: str, output_path: st
     d_rep = np.mean(d_rep_drop_nan, axis=0)
     # save the embeddings
     save_path = f"{output_path}/{model_name}/{domain}.npy"
-    Path(save_path).mkdir(parents=True, exist_ok=True)
+#    Path(save_path).mkdir(parents=True, exist_ok=True)
     np.save(save_path, d_rep)
     logger.info(f"Embeddings for domain {domain} saved to {save_path}")
 
