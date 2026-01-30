@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 def build_model_config(num_experts: int = 2) -> TransformerConfig:
-    tokenizer = TokenizerConfig.dolma2()
+    tokenizer = TokenizerConfig.from_hf("models/Flex-code-2x7B-1T")
     return TransformerConfig.olmoe_nx7b(  # type: ignore
         vocab_size=tokenizer.padded_vocab_size(),
         num_experts=num_experts,

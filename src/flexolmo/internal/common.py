@@ -104,7 +104,7 @@ def build_common_components(
     tracking_backend: str = None,
 ) -> CommonComponents:
 
-    tokenizer_config = TokenizerConfig.dolma2()
+    tokenizer_config = TokenizerConfig.from_hf("allenai/Flex-code-2x7B-1T")
 
     dataset_config = NumpyDatasetConfig.from_data_mix(
         DataMix.OLMoE_mix_0824,

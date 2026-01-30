@@ -1,3 +1,4 @@
+import json
 import logging
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM
@@ -59,6 +60,15 @@ def main(
                         log.info(f"Computing SVD for key {key}")
                         key2usvh[key] = torch.linalg.svd(delta_expert, full_matrices=False)
                     u, s, vh = key2usvh[key]
+                    # Variance explained by each component
+                    variance_explained = s**2 / (delta_expert.shape[0] - 1)
+                    # Proportion of total variance
+                    explained_variance_ratio = (s**2) / torch.sum(s**2)
+                    # Cumulative explained variance
+                    cumulative_variance = torch.cumsum(explained_variance_ratio, dim=0)
+                    print(json.dumps(list(enumerate(variance_explained.tolist())), indent=2))
+                    print(json.dumps(list(enumerate(explained_variance_ratio.tolist())), indent=2))
+                    print(json.dumps(list(enumerate(cumulative_variance.tolist())), indent=2))
                     lora_u = u[:, :r]
                     lora_s = s[:r]
                     lora_vh = vh[:r, :]

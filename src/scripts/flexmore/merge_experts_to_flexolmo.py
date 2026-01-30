@@ -1,6 +1,8 @@
 from collections import defaultdict
 import json
 import logging
+import numpy as np
+import os
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM
 import typer
@@ -25,8 +27,13 @@ def main(
     models: list[str] = typer.Argument(..., help="List of expert model paths to merge"),
     device: str = typer.Option("cpu", help="Device to load the models on"),
     dtype: str = typer.Option("bfloat16", help="Data type to load the models with"),
+    num_pubs: int = typer.Option(1, help="Number of public experts"),
+    embed_path: list[str] = typer.Option([], help="Paths to the embeddings used for expert i in the format i=path"),
 ):
     prepare_cli_environment()
+    embed_dict = {int(e): torch.from_numpy(np.load(p)[None, :]) for e, p in (tuple(ep.split("=", maxsplit=1)) for ep in embed_path)}
+    if embed_dict:
+        print(f"Loaded embeddings for experts: {embed_dict}")
     expert_paths = models
     target_path = target
     device = torch.device(device)
@@ -43,6 +50,8 @@ def main(
     moe_state_dict = model.state_dict()
     filled_keys = defaultdict(int)
     for expert, path in enumerate(expert_paths):
+        log.info(f"Priming {path} to fill disk cache")
+        os.system(f"cat {path}/* > /dev/null")
         log.info(f"Loading model from {path} as expert {expert} on {device} with dtype {dtype}")
         with torch.device(device):
             expert_model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype)
@@ -53,32 +62,36 @@ def main(
         for expert_key in list(expert_state_dict.keys()):
             moe_key = expert_key
             if ".experts.0." in expert_key:
-                if expert:
+                if expert >= num_pubs:
                     assert torch.equal(
                         moe_state_dict[moe_key], expert_state_dict[expert_key]
                     ), f"Shared key {moe_key} is different"
                     moe_key = None
+                else:
+                    moe_key = expert_key.replace(".experts.0.", f".experts.{expert}.")
             elif ".experts.1." in expert_key:
-                if expert:
+                if expert >= num_pubs:
                     moe_key = expert_key.replace(".experts.1.", f".experts.{expert}.")
                 else:
                     moe_key = None
             elif ".mlp.gate." in expert_key:
                 # this is a 4096 in_features and num_experts out_features weight
-                if expert:
+                if expert >= num_pubs:
                     assert torch.equal(
                         moe_state_dict[moe_key][:1, :],
                         expert_state_dict[expert_key][:1, :],
                     ), f"Gate weights for expert 0 are different for expert and MoE model: {moe_key}"
-                    moe_state_dict[moe_key][expert:expert+1, :] = expert_state_dict[expert_key][1:2, :]
+                    gate_weights = embed_dict.get(expert, expert_state_dict[expert_key][1:2, :])
                 else:
-                    moe_state_dict[moe_key][:1, :] = expert_state_dict[expert_key][:1, :]
+                    gate_weights = embed_dict.get(expert, expert_state_dict[expert_key][:1, :])
+                assert gate_weights.shape == moe_state_dict[moe_key][expert:expert+1, :].shape, f"Gate weights shape {gate_weights.shape} mismatch for expert {expert} for key {moe_key} with shape {moe_state_dict[moe_key][expert:expert+1, :].shape}"
+                moe_state_dict[moe_key][expert:expert+1, :] = gate_weights
                 filled_keys[moe_key] += 1
                 moe_key = None
             elif expert:
                 assert torch.equal(
                     moe_state_dict[moe_key], expert_state_dict[expert_key]
-                ), f"Sharedf key {key} is different"
+                ), f"Shared key {moe_key} is different: {moe_state_dict[moe_key][0,:5]} vs {expert_state_dict[expert_key][0,:5]}"
                 moe_key = None
             if moe_key:
                 moe_state_dict[moe_key] = expert_state_dict[expert_key]
