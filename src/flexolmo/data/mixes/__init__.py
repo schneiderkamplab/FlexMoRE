@@ -27,7 +27,8 @@ class CustomDataMix(DataMixBase):
     starcoder = "starcoder"
     news = "news"
     pes2o = "pes2o"
-    danish = "danish"
+    danish_v1 = "danish_v1"
+    danish_v2 = "danish_v2"
     flan = "flan"
     reddit_v0 = "reddit_v0"
 
