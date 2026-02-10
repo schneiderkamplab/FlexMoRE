@@ -351,6 +351,7 @@ def launch_eval(args_dict: dict):
         "save-raw-requests": "true" if args_dict["save_raw_requests"] else "false",
         "num-workers": args_dict["num_workers"],
         "gpus": args_dict["gpus"],
+        "trust_remote_code": "false",
     }
     for key in [
         "remote_output_dir",

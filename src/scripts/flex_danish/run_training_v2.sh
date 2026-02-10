@@ -5,6 +5,7 @@ export TORCHINDUCTOR_COMPILE_WORKER_KIND=spawn
 export TORCHINDUCTOR_CACHE_DIR=/tmp/inductor
 export TRITON_CACHE_DIR=/tmp/triton
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 (torchrun \
   --nproc-per-node=4 \
   src/scripts/train/OLMoE-2x7B-anneal.py \
@@ -12,7 +13,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   --trainer.callbacks.profiler.enabled=true \
   --dataset.mix_base_dir=data \
   --dataset.mix=danish_v2 \
-  --trainer.max_duration.value=50_000_000_000 \
+  --trainer.max_duration.value=57_800_000_000 \
   --trainer.max_duration.unit=tokens \
   --trainer.load_path=public/Flex-public-2x7B-1T-v1 \
   --model.block.feed_forward_moe.router.top_k=2 \
@@ -25,4 +26,6 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   --data_loader.global_batch_size=524288 \
   --train_module.max_sequence_length=4096 \
   --dataset.sequence_length=4096 \
+  --train_module.dp_config.num_replicas=2 \
+  --train_module.ep_config.degree=2 \
 2>&1) | tee -a flex_danish_v2.log

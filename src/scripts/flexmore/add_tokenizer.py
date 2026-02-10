@@ -3,7 +3,7 @@ import typer
 
 def main(
     target: str,
-    source: str = "allenai/dolma2-tokenizer"
+    source: str = "allenai/Flex-code-2x7B-1T"
 ):
     tokenizer = AutoTokenizer.from_pretrained(source)
     tokenizer.save_pretrained(target)

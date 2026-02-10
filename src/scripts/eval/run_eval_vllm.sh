@@ -63,14 +63,14 @@ for TASK in "${TASKS[@]}"; do
 	model=$(echo $MODEL | cut -d'/' -f2)
 	# OOM with some tasks, so batch size to be 1
 	if [[ $TASK == "minerva_math_"* || $TASK == "mbpp"* || $TASK == "bigcodebench"* || $TASK == "sciriff"* ]] ; then
-		batch_size=1
+		batch_size=16
 	else
-		batch_size=4
+		batch_size=64
 	fi
 
 	PYTHONPATH=. python src/scripts/eval/launch_eval.py \
 	--model $MODEL \
-	--model-type hf \
+	--model-type vllm \
 	--task $TASK \
 	--limit $LIMIT \
 	--output-dir ${BASE_OUTPUT_DIR}/${MODEL} \
